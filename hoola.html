@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Study Backlog</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+            margin: 0;
+            padding: 20px;
+        }
+        h1 {
+            text-align: center;
+            color: #4CAF50;
+            margin-bottom: 20px;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 10px;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        th, td {
+            padding: 8px; /* Reduced from 12px to 8px */
+            text-align: center;
+            border: 1px solid #ddd;
+            font-size: 0.9em; /* Adjust font size for compactness */
+        }
+        th {
+            background-color: #4CAF50;
+            color: white;
+        }
+        .subject-title {
+            background-color: #f4f4f4;
+            font-weight: bold;
+            color: #4CAF50;
+            padding: 8px;
+            text-align: left;
+            border: 1px solid #ddd;
+        }
+        .footer {
+            text-align: center;
+            font-size: 12px;
+            margin-top: 20px;
+            color: #777;
+        }
+        button {
+            display: block;
+            margin: 20px auto;
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .output {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 1em;
+            color: #4CAF50;
+        }
+        input[type="number"] {
+            display: block;
+            margin: 20px auto;
+            padding: 10px;
+            font-size: 1.1em;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+            width: 60%;
+            text-align: center;
+        }
+        input[type="text"] {
+            width: 100%;
+            border: none;
+            text-align: center;
+            padding: 5px;
+        }
+        .chapter-row {
+            background-color: #f9f9f9; /* Light background for chapter rows */
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Study Backlog</h1>
+
+        <div id="backlogContainer"></div>
+
+        <input type="number" id="timeInput" placeholder="Enter time in hours" min="0.5" step="0.1">
+        <button onclick="selectChapters()">Select Chapters Based on Time</button>
+
+        <!-- Added space for separation -->
+        <div style="margin-top: 20px;"></div>
+
+        <div class="output" id="output"></div>
+    </div>
+
+    <div class="footer">
+        <p>&copy; 2024 Study Backlog Tracker</p>
+    </div>
+
+    <script>
+        const subjects = {
+            Mathematics: [
+                { name: "Indefinite Integration", questions: 12, avgTimePerQuestion: 5 },
+                { name: "Quadratic Equations", questions: 33, avgTimePerQuestion: 6.3 },
+                { name: "Progression", questions: 32, avgTimePerQuestion: 5.6 },
+                { name: "Area Under Curve", questions: 110, avgTimePerQuestion: 4.5 },
+                { name: "Differential Equations", questions: 98, avgTimePerQuestion: 4.3 },
+                { name: "Definite Integration", questions: 125, avgTimePerQuestion: 4.3 }
+            ],
+            Physics: [
+                { name: "Relative Motion", questions: 11, avgTimePerQuestion: 5.4 },
+                { name: "Projectile Motion", questions: 25, avgTimePerQuestion: 3.2 },
+                { name: "Modern Physics", questions: 98, avgTimePerQuestion: 3 },
+                { name: "Electronics", questions: 92, avgTimePerQuestion: 3.3 },
+                { name: "Vectors/Units/Error", questions: 100, avgTimePerQuestion: 3 },
+                { name: "1D Motion", questions: 120, avgTimePerQuestion: 3 }
+            ],
+            Chemistry: [
+                { name: "d-Block Elements", questions: 55, avgTimePerQuestion: 3.3 },
+                { name: "Chemical Kinetics", questions: 70, avgTimePerQuestion: 5 },
+                { name: "Practical Chemistry", questions: 80, avgTimePerQuestion: 4.3 }
+            ]
+        };
+
+        // Load saved backlog or use initial subjects data
+        let backlog = JSON.parse(localStorage.getItem('backlog')) || subjects;
+
+        function updateLocalStorage() {
+            localStorage.setItem('backlog', JSON.stringify(backlog));
+        }
+
+        function renderBacklogTable() {
+            const backlogContainer = document.getElementById("backlogContainer");
+            backlogContainer.innerHTML = ""; // Clear previous content
+
+            Object.keys(backlog).forEach(subject => {
+                // Add a row for the subject title
+                const subjectTitle = document.createElement("h2");
+                subjectTitle.className = "subject-title";
+                subjectTitle.textContent = subject;
+                backlogContainer.appendChild(subjectTitle);
+
+                // Add rows for each chapter under the subject
+                backlog[subject].forEach(chapter => {
+                    const row = document.createElement("div");
+                    row.className = "chapter-row";
+
+                    const chapterCell = document.createElement("span");
+                    chapterCell.textContent = chapter.name;
+
+                    const questionsCell = document.createElement("span");
+                    const input = document.createElement("input");
+                    input.type = "text";
+                    input.value = chapter.questions;
+                    input.addEventListener("change", function () {
+                        chapter.questions = parseInt(this.value);
+                        updateLocalStorage();
+                    });
+                    questionsCell.appendChild(input);
+
+                    row.appendChild(chapterCell);
+                    row.appendChild(questionsCell);
+                    backlogContainer.appendChild(row);
+                });
+            });
+        }
+
+        // Get random number of questions based on time
+        function getRandomQuestions(chapter, timeLeft) {
+            const maxLimit = Math.floor(Math.random() * (45 - 30 + 1)) + 30; // Random limit between 30 and 45
+            const maxQuestions = Math.min(maxLimit, Math.floor((timeLeft * 60) / chapter.avgTimePerQuestion));
+            return Math.min(maxQuestions, chapter.questions);
+        }
+
+        // Select chapters based on available time from any subject
+        function selectChapters() {
+            const time = parseFloat(document.getElementById('timeInput').value);
+            if (isNaN(time) || time <= 0) {
+                document.getElementById('output').innerHTML = "Please enter a valid time.";
+                return;
+            }
+
+            // Collect all chapters across subjects into a single array
+            let allChapters = [];
+            Object.keys(backlog).forEach(subject => {
+                backlog[subject].forEach(chapter => {
+                    allChapters.push({ subject, ...chapter });
+                });
+            });
+
+            let totalTime = 0;
+            let selectedChapters = [];
+
+            // Randomly select chapters while keeping within the time limit
+            while (totalTime < time && allChapters.length > 0) {
+                const randomIndex = Math.floor(Math.random() * allChapters.length);
+                const chapter = allChapters[randomIndex];
+                allChapters.splice(randomIndex, 1); // Remove the selected chapter
+
+                const availableTime = time - totalTime;
+                const questions = getRandomQuestions(chapter, availableTime);
+
+                if (questions > 0) {
+                    selectedChapters.push({ ...chapter, questions });
+                    totalTime += (questions * chapter.avgTimePerQuestion) / 60;
+                }
+
+                // If we reach the limit, stop
+                if (totalTime >= time) break;
+            }
+
+            // Attempt to distribute questions evenly
+            if (selectedChapters.length > 0) {
+                const totalQuestions = selectedChapters.reduce((sum, chap) => sum + chap.questions, 0);
+                const evenlyDistributedQuestions = Math.floor(totalQuestions / selectedChapters.length);
+                const remainder = totalQuestions % selectedChapters.length;
+
+                selectedChapters.forEach((chapter, index) => {
+                    chapter.questions = evenlyDistributedQuestions + (index < remainder ? 1 : 0);
+                });
+            }
+
+            if (selectedChapters.length === 0) {
+                document.getElementById('output').innerHTML = "No chapters selected.";
+            } else {
+                let outputHtml = "<h3>Selected Chapters:</h3><ul>";
+                selectedChapters.forEach(chapter => {
+                    outputHtml += `<li>${chapter.subject}: ${chapter.name} - ${chapter.questions} questions</li>`;
+                });
+                outputHtml += "</ul>";
+                document.getElementById('output').innerHTML = outputHtml;
+            }
+        }
+
+        // Initial rendering of the backlog table
+        renderBacklogTable();
+    </script>
+</body>
+</html>
